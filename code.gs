@@ -24,18 +24,38 @@ function showPicker() {
 *  MailApp is used to send the email (you can add recipients via their email, will need to ask sarah about this info and how she wants handled)
 *THis funtion does not parse the documents rather, it adds all contents to the var body.
 */
- function sendMeeting(Id) {
-      var body = [];
-      var length = Id.length;
+  function sendMeeting(Id) {
+      //var body = [];
+   var length = Id.length;
+   var email = '';
    var todayDate = new Date();
    for(i =0; i<length; i++){
-       body.push(DocumentApp.openById(Id[i]).getBody().getText()+ '\n---------------------------\n');
+      // body.push(DocumentApp.openById(Id[i]).getBody().getText()+ '\n---------------------------\n');
+     
+     email += parseNotes(DocumentApp.openById(Id[i]).getBody().getText());
+     
    }
-   DocumentApp.getActiveDocument().getBody().setText(body);
+   DocumentApp.getActiveDocument().getBody().setText(email);
   MailApp.sendEmail('pricelev@gmail.com',
                     'meeting notes from '+todayDate.getMonth() + ' - ' + todayDate.getDate(),
-                    ''+body);
+                    email);
   }
+
+/** CurrentString is the string from the whole text, we will use .split to create a new array of the document tokenized into single line strings
+* the for loop itterates through the array of strings and grabs the ones that start with a '['
+* returns returnString which is a string of all action items.
+*/
+function parseNotes(currentString){
+      var splitNotes = currentString.split('\n');
+      var length = splitNotes.length;
+      var returnString = '';
+  for(i =0; i<length; i++){
+    if(splitNotes[i].charAt(0) === '['){
+      returnString += splitNotes[i] + '\n\n';
+    }
+  }
+    return returnString;
+}
 
 
 /**
