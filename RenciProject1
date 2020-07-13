@@ -1,0 +1,115 @@
+
+/**
+ * @param {Object} e The event parameter for a simple onOpen trigger.
+ */
+function onOpen(e) {
+  sendMeeting();
+}
+
+
+
+
+function sendMeeting() {
+
+  var currentSheet = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1qitezJlL-MQ701IX7rRBu_8wZNjq_6Ix6uo9vLODIJg/edit#gid=2059409670');
+  var length = currentSheet.getLastRow();
+  var links = [];
+  var stringLinks = '';
+  for(i=1; i<= length; i++){
+    var currentCell = currentSheet.getRange('A'+i).getFormula();
+    if(currentCell != null){
+     var splitter = currentCell.split('"');
+     links.push(splitter[1]);
+    }
+  }
+ 
+  var linklength = links.length;
+  
+  
+  var body = '';
+ for(i =0; i<linklength; i++){
+    if(links[i] == undefined){
+    }
+    else{
+      body += parseNotes(links[i]) ;    
+    }
+}
+  
+  var d = new Date();
+  var month = d.getMonth()+1;
+  // Get the email address of the active user - that's you.
+  var email = Session.getActiveUser().getEmail();// +', bdc3@renci.org';
+
+  
+  var subject = 'BDC3 Meeting Notes From: ' + month + '-' + d.getDate();
+
+  // Send email
+  MailApp.sendEmail(email, subject, body);
+}
+
+function parseNotes(currentString){
+  /* try: to see if the document is able to open
+  *  catch: sends an error if the document cannot be opened. This is currently caused by permission errors 
+  */
+  
+  try{
+  
+      var notes = DocumentApp.openByUrl(currentString).getBody().getText();
+    //split itemizes the text in the document any where that there is a new line
+      var splitNotes = notes.split('\n');
+      var notelength = splitNotes.length;
+      var returnString = '';
+    //sets the current date and sets its time to zero. This is for comparisons later.
+      var curDate = new Date();
+      curDate.setHours(0,0,0,0);
+    //boolean variable to make sure we are on the correct date for parsing
+      var onDate = false;
+    //int used to help stop the loop 
+    var dateCount = 0;
+      
+  for(x =0; x<notelength; x++){
+    
+  
+      //looks for - at the 4th and 7th character of the line of notes
+      // This is to see if it is a date or not.
+     if(splitNotes[x].charAt(4) === '-' && splitNotes[x].charAt(7) === '-'){
+       //there is a wierd thing with the date class that '2020-07-10' for example would corrilate with the 9th.
+       // the if and else here check to see if there is a colon on the line.
+       // a colon makes it correctly represent the date
+       if(splitNotes[x].charAt(10) === ':'){
+         var docDate = new Date(splitNotes[x]);
+           
+       }
+       else{
+         var docDate = new Date(splitNotes[x] + ':');
+       }
+      docDate.setHours(0,0,0,0);
+       //compares the two dates; This does the date and the time which is why we had to setHours to 0;
+       //This also turns onDate to true for parsing
+      if(docDate.getTime() === curDate.getTime()){
+        onDate = true;
+        dateCount++;
+        returnString +=  DocumentApp.openByUrl(currentString).getName()+'\n' + currentString + '\n\n';
+      }
+      else{
+        // will break the loop 
+        if(dateCount>0){
+          returnString += '-------------------------------\n\n'; 
+          break;
+        }
+        onDate = false;
+      }
+    }
+    
+    //parses the notes when the first character of the line is a [ and if onDate is set to true;
+    if(splitNotes[x].charAt(0) === '[' && onDate){
+      returnString += splitNotes[x] + '\n';
+    }
+  }
+  }
+  
+  catch(err){
+    returnString += '\nerror opening document \n' + currentString +'\n-------------------------------\n\n';
+  }
+    return returnString;
+}
